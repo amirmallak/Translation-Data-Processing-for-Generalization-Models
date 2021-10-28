@@ -359,7 +359,7 @@ def data_frame_cleaning(data_frame):
     changing_column_indexes_names(data_frame)
 
 
-def create_data_frame(file: str, pandas_callback_function: callable):
+def create_data_frames(file: str, pandas_callback_function: callable):
     data_frame_list: List = []
     file_name_list: List = []
 
@@ -454,7 +454,7 @@ def fetching_sql_file_meta_data_table(engine):
     return existing_table
 
 
-def file_crawler(root_directory: str, file_mapping_directory: str, apply_data_filters: bool):
+def crawl_file(root_directory: str, file_mapping_directory: str, apply_data_filters: bool):
     list_csv_files: List[str] = []
     extension_types = get_extensions()
     file_names_list, file_path_list, modification_date_list, creation_date_list, file_md5_list = [], [], [], [], []
@@ -466,16 +466,17 @@ def file_crawler(root_directory: str, file_mapping_directory: str, apply_data_fi
 
     # Fetching the all file's columns translation dictionary
     translate_index_file_path = translation_dictionary_path(file_mapping_directory)
+    translate_dict: Dict = read_json_translation_file(translate_index_file_path)
 
     for dir_name, sub_dir_list, file_List in os.walk(root_directory):
         for file in file_List:
             file_name, extension = os.path.splitext(file)
             extension = extension.lower()
-            if extension in extension_types.keys():
+            if (extension in extension_types.keys()) and (file_name[0:2] != '~$'):  # If extension is supported and
+                # file is not open
                 # Fetching the file's columns translation dictionary
                 # Translate_index_file_path = file_translation_dictionary_path(file_mapping_directory, file, file_name)
 
-                translate_dict: Dict = read_json_translation_file(translate_index_file_path)
                 file_path = os.path.join(dir_name, file)
 
                 file_information = pathlib.Path(file_path)  # All file's information
@@ -484,8 +485,6 @@ def file_crawler(root_directory: str, file_mapping_directory: str, apply_data_fi
                 creation_time = file_information.stat().st_ctime  # Creation time (in [sec])
                 creation_date = datetime.fromtimestamp(creation_time)  # Creation Date (in date view)
 
-                if file_name[0:2] == '~$':  # If the file is currently open
-                    continue
                 try:
                     if ((existing_table['File_name'] == file_name) &
                         (existing_table['File_path'] == file_path) &
@@ -508,7 +507,7 @@ def file_crawler(root_directory: str, file_mapping_directory: str, apply_data_fi
                 creation_date_list.append(creation_date)
                 file_md5_list.append(file_md5_hash)
 
-                file_name_list, data_frame_list = create_data_frame(file_path, extension_types[extension])
+                file_name_list, data_frame_list = create_data_frames(file_path, extension_types[extension])
 
                 # data_frame_list = data_filtering(data_frame_list)  # TODO: Change to be choosable
                 add_to_db(data_frame_list, file_name_list)
@@ -531,18 +530,21 @@ def file_crawler(root_directory: str, file_mapping_directory: str, apply_data_fi
 
 def main():
     arguments = sys.argv[1:]
-    root_directory, file_mapping_directory, apply_data_filters = [None] * 3  # Initial assignment
+    # Initial assignment
+    root_directory = None
+    file_mapping_directory = None
+    apply_data_filters = None
     try:
         root_directory = arguments[0]
         file_mapping_directory = arguments[1]
         apply_data_filters = arguments[2]
     except IndexError:
-        if not len(arguments) ^ 0:  # If the user didn't specify any path
+        if not arguments:  # If the user didn't specify any path
             root_directory = config.path
             file_mapping_directory = config.path
             apply_data_filters = False  # Default Value
 
-    file_crawler(root_directory, file_mapping_directory, apply_data_filters)
+    crawl_file(root_directory, file_mapping_directory, apply_data_filters)
 
 
 if __name__ == '__main__':
