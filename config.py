@@ -24,3 +24,6 @@ alternative_path = getenv('Alternative_PATH', None)
 
 # Mapping Files Path
 path_mapping = getenv('PATH_MAPPING', None)
+
+# Connection String
+connection_string = getenv('CONN_STR', None)
