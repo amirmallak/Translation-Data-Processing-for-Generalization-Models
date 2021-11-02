@@ -1,5 +1,26 @@
+import hashlib
+import json
+import os
+import pathlib
+from datetime import datetime
+from functools import lru_cache
+
+import config
+
+from typing import Dict, Optional, Tuple
 
 FILES_META_DATA_TABLE = 'Files_Meta_Data'
+
+
+def extract_file_information(file_path: str) -> Tuple[str, datetime, datetime]:
+    file_name, _ = os.path.splitext(file_path.split('\\')[-1])
+    file_information = pathlib.Path(file_path)  # All file's information
+    modification_time = file_information.stat().st_mtime  # Modification time (in [sec])
+    modification_date = datetime.fromtimestamp(modification_time)  # Modification Date (in date view)
+    creation_time = file_information.stat().st_ctime  # Creation time (in [sec])
+    creation_date = datetime.fromtimestamp(creation_time)  # Creation Date (in date view)
+
+    return file_name, modification_date, creation_date
 
 
 def merge_dictionaries(dict1, dict2) -> Dict:
@@ -22,6 +43,7 @@ def replacing_string_char(name: str, index: int, replace_char: Optional[str] = N
     return name
 
 
+@lru_cache(maxsize=int((1e3 + 2e1 + 3e0)))
 def calculate_md5_hash(file_path: str) -> str:
     md5_hash = hashlib.md5()
     with open(file_path, 'rb') as binary_file:

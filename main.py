@@ -1,5 +1,9 @@
+from typing import Any
+
 import config
 import sys
+
+from file_crawler import crawl_file
 
 
 def main():

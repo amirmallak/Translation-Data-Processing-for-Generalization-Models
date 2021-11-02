@@ -1,3 +1,11 @@
+import numpy as np
+import pandas as pd
+import config
+
+from typing import Optional, List, Dict
+from sqlalchemy import NVARCHAR, create_engine
+from data_processing import pandas_to_numeric, create_clean_data_frame
+from utils import create_engine_path, FILES_META_DATA_TABLE
 
 
 def fetch_table(table_name: str, engine) -> pd.DataFrame:
@@ -13,7 +21,7 @@ def fetch_table(table_name: str, engine) -> pd.DataFrame:
     return existing_table
 
 
-def data_frames_formating(data_frame_list: List[pd.DataFrame], table_name_list: List[str], engine):
+def data_frames_formatting(data_frame_list: List[pd.DataFrame], table_name_list: List[str], engine):
 
     for table_name, data_frame in zip(table_name_list, data_frame_list):
 
@@ -72,22 +80,26 @@ def update_database(data_frame_list: List[pd.DataFrame], file_name_list: List[st
     engine_path: str = create_engine_path()
     engine = create_engine(engine_path, echo=False)
 
-    for raw_table, clean_table, table_name in data_frames_formating(data_frame_list, file_name_list):
+    for raw_table, clean_table, table_name in data_frames_formatting(data_frame_list, file_name_list):
         add_to_db(raw_table, clean_table, table_name, engine)
 
 
-def fetching_sql_file_meta_data_table(engine):
+def fetching_sql_file_meta_data_table(connection):
     # Fetching SQL File_Meta_Data Table
     try:  # Check if the table 'Meta_Data' already exists
         # existing_table: Optional[pd.DataFrame] = pd.read_sql(f'SELECT * FROM [dbo].[{FILES_META_DATA}];', engine)
-        existing_table: Optional[pd.DataFrame] = pd.read_sql(f'SELECT * FROM [{FILES_META_DATA_TABLE}];', engine)
+        existing_table: Optional[pd.DataFrame] = pd.read_sql(f'SELECT * FROM [{FILES_META_DATA_TABLE}];', connection)
         existing_table.drop(columns=[existing_table.columns[0]],
                             inplace=True)  # Dropping the SQL's 'index' column
     except Exception as e:  # If this is the first insertion
         print(f'\nAn {e} has Occurred!\n')
         print(f'There wasn\'t a SQL Table by name: Meta_Data!\n')
         print(f'Creating one...\n')
-        existing_table = None
+        existing_table = pd.DataFrame({'File_name': [],
+                                       'File_path': [],
+                                       'Modification_date': [],
+                                       'Creation_date': [],
+                                       'File_md5': []})
 
     return existing_table
 
@@ -119,7 +131,7 @@ def create_view_sql_query(view_table_name, translate_dict, table_name, sql_colum
     return raw_view_query, clean_view_query
 
 
-def is_relevant_table(translate_dict, sql_columns_names):
+def _is_relevant_table(translate_dict, sql_columns_names):
     relevant_table: bool = False
     for column in sql_columns_names:
         if translate_dict.get(column[0], None):
@@ -142,7 +154,7 @@ def create_sql_view_tables(translate_dict: Dict):
             sql_columns_names = conn.execute(f'Select distinct column_name '
                                              f'From {config.db_name}.INFORMATION_SCHEMA.COLUMNS '
                                              f'WHERE table_name = N\'{table_name}\'').fetchall()
-            relevant_table: bool = is_relevant_table(translate_dict, sql_columns_names)
+            relevant_table: bool = _is_relevant_table(translate_dict, sql_columns_names)
             if relevant_table:
                 view_table_name = table_name.replace(' ', '_')
 
