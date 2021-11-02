@@ -48,7 +48,7 @@ def crawl_file(root_directory: str,
                     file_name_list, data_frame_list = create_data_frames(file_path, extension_types[extension])
 
                     if apply_data_filters:
-                        data_frame_list = data_filtering(data_frame_list)  # TODO: Change to be choosable
+                        data_frame_list = data_filtering(data_frame_list)
 
                     if update_db:
                         update_database(data_frame_list, file_name_list)

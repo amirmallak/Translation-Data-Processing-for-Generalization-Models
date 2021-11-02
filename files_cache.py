@@ -1,9 +1,5 @@
-import os
-import pathlib
-from datetime import datetime
-from typing import Any
 import pandas as pd
-from sqlalchemy import create_engine, INTEGER
+from sqlalchemy import create_engine, INTEGER, TEXT
 from sqlalchemy.engine import Engine
 
 import config
@@ -21,15 +17,24 @@ class FilesCache:
         self.engine = create_engine(engine_path, echo=False)
 
     def __enter__(self):
-        self.conn = self.engine.connect()
-        self.existing_table = fetching_sql_file_meta_data_table(self.conn)
+        self.connect()
 
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.disconnect()
+
+    def connect(self):
+        self.conn = self.engine.connect()
+        self.existing_table = fetching_sql_file_meta_data_table(self.conn)
+
+    def disconnect(self):
         self._dump_existing()
         if self.conn and not self.conn.closed:
             self.conn.close()
+
+    def clear(self):
+        self.conn.execute(f'DROP TABLE {FILES_META_DATA_TABLE};')
 
     def exists(self, file_path):
         file_name, modification_date, creation_date = extract_file_information(file_path)
@@ -46,8 +51,8 @@ class FilesCache:
         self.existing_table = self.existing_table.append(
             {'File_name': file_name,
              'File_path': file_path,
-             'Modification_date': modification_date,
-             'Creation_date': creation_date,
+             'Modification_date': int(modification_date.timestamp()),
+             'Creation_date': int(creation_date.timestamp()),
              'File_md5': file_md5},
             ignore_index=True)
         self.existing_table.drop_duplicates(inplace=True, ignore_index=True)

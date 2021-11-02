@@ -80,7 +80,7 @@ def update_database(data_frame_list: List[pd.DataFrame], file_name_list: List[st
     engine_path: str = create_engine_path()
     engine = create_engine(engine_path, echo=False)
 
-    for raw_table, clean_table, table_name in data_frames_formatting(data_frame_list, file_name_list):
+    for raw_table, clean_table, table_name in data_frames_formatting(data_frame_list, file_name_list, engine):
         add_to_db(raw_table, clean_table, table_name, engine)
 
 
