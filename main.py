@@ -1,5 +1,3 @@
-from typing import Any
-
 import config
 import sys
 

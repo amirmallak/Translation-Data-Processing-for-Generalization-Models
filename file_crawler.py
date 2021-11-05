@@ -32,7 +32,7 @@ def crawl_file(root_directory: str,
     translate_index_file_path = translation_dictionary_path(file_mapping_directory)
     translate_dict: Dict = read_json_translation_file(translate_index_file_path)
 
-    with FilesCache() as files_cache:
+    with FilesCache(config.connection_string) as files_cache:
         for dir_name, sub_dir_list, file_List in os.walk(root_directory):
             for file in file_List:
                 file_name, extension = os.path.splitext(file)

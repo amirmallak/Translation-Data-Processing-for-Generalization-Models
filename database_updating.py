@@ -93,7 +93,7 @@ def fetching_sql_file_meta_data_table(connection):
                             inplace=True)  # Dropping the SQL's 'index' column
     except Exception as e:  # If this is the first insertion
         print(f'\nAn {e} has Occurred!\n')
-        print(f'There wasn\'t a SQL Table by name: Meta_Data!\n')
+        print(f'There wasn\'t an SQL Table by name: Meta_Data!\n')
         print(f'Creating one...\n')
         existing_table = pd.DataFrame({'File_name': [],
                                        'File_path': [],
