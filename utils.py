@@ -2,12 +2,30 @@ import hashlib
 import json
 import os
 import pathlib
-from datetime import datetime
-from functools import lru_cache
-
 import config
 
+from datetime import datetime
+from functools import lru_cache
 from typing import Dict, Optional, Tuple
+
+"""
+This module is responsible for extracting file's and mapping dictionary information, as well as calculating file's md5 
+encoding using an LRU system Cache
+
+Functions:
+
+extract_file_information() -- Extracts files relevant meta data
+merge_dictionaries() -- Merges two dictionaries
+replacing_string_char() -- Replaces a char in a given string (at a given index) with another desirable char
+calculate_md5_hash() -- Calculates files md5 in a differentiable manner (using an LRU Cache)
+read_json_translation_file() -- Given a json files path, returns a json mapping dictionary
+file_translation_dictionary_path() -- Returning the full path in which the mapping dictionary exists in (when files name
+                                      is provided)
+translation_dictionary_path() -- Returning the full path in which the default mapping dictionary exists in (when files 
+                                 name isn't provided)
+create_engine_path() -- A string builder for engine connection path
+"""
+
 
 FILES_META_DATA_TABLE = 'Files_Meta_Data'
 
@@ -29,7 +47,7 @@ def merge_dictionaries(dict1, dict2) -> Dict:
     return merged_dictionary
 
 
-def replacing_string_char(name: str, index: int, replace_char: Optional[str] = None):
+def replacing_string_char(name: str, index: int, replace_char: Optional[str] = None) -> str:
     name = list(name)
     name[index] = replace_char
     if not replace_char:
@@ -54,13 +72,13 @@ def calculate_md5_hash(file_path: str) -> str:
     return file_md5_hash
 
 
-def read_json_translation_file(translate_index_file_path: str):
+def read_json_translation_file(translate_index_file_path: str) -> Dict:
     with open(translate_index_file_path, 'r', encoding='utf-8') as json_file:
         translation_dictionary: Dict[str, str] = json.load(json_file)
     return translation_dictionary
 
 
-def file_translation_dictionary_path(file_mapping_directory, file, file_name):
+def file_translation_dictionary_path(file_mapping_directory, file, file_name) -> Optional[str]:
     translate_index_file_path = None  # Initial assignment
     for _, _, mapping_file_List in os.walk(file_mapping_directory):
         translate_index_file = f'{file_name}.json'

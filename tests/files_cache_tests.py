@@ -15,12 +15,12 @@ TEST_DB_NAME = 'database.db'
 @fixture(scope='function')
 def files_cache():
     fc = FilesCache(f'sqlite:///{TEST_DB_NAME}')
-    fc.connect()
+    fc._connect()
     assert not fc.existing_table.size, "Cache suppose to be empty"
     yield fc
 
-    fc.clear()
-    fc.disconnect()
+    fc._clear()
+    fc._disconnect()
 
 
 def test_new_file_added_to_cache(files_cache: FilesCache):

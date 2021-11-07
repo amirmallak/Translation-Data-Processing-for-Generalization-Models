@@ -1,11 +1,33 @@
 import numpy as np
 import pandas as pd
 
-from typing import List, Dict
+from typing import List, Dict, Optional
 from utils import replacing_string_char
 
+"""
+This module does all the pre-processing necessary and choosable (applying filters) on the data.
 
-def func(value):
+Functions:
+
+_func() -- Handling 'nan' values and peak values in the data frame
+_wrong_data_filtering() -- Filters the wrong data within the data frame (if exists)
+_removing_duplicates() -- Removing any duplicated rows within the data frame
+_interpolated_data() -- Replacing 'nan' values with the desired interpolation
+data_filtering() -- If choosable, applying different filter on the data
+_non_integer_type_columns() -- Picking the non integer type columns from the data frame
+_create_clean_data_frame() -- Creates a clean data frame (manipulates fields names and 'nan' values)
+_pandas_to_numeric() -- Changing the columns value type to numeric (for filtering ready)
+_dropping_nan_columns() -- Dropping NAN columns
+_dropping_nan_rows() -- Dropping NAN rows
+_changing_column_indexes() -- Finding which is the right index in data frame that should represent the fields (in case 
+                             the csv/excel file has blanks/empty rows, or titles at its header)
+_changing_column_indexes_names() -- Cleaning columns fields names
+_data_frame_cleaning() -- Apply the pre-processing above functions
+create_data_frames() -- Creates a pandas data frame from the provided file
+"""
+
+
+def _func(value: Optional[float]) -> Optional[float]:
     if value is ' ':  # Turning a ' ' (space) char into 'nan' (so afterwards it could be aggregated)
         return pd.to_numeric(value, errors='coerce')
     if (pd.to_numeric(value, errors='coerce') > -np.inf) and int(value) >= 1e3:
@@ -13,27 +35,28 @@ def func(value):
     return value
 
 
-def wrong_data_filtering(data_frame):
+def _wrong_data_filtering(data_frame: pd.DataFrame) -> pd.DataFrame:
     # Wrong Data; Correcting all misleading data by a Decade (log scale - log_10(P) = x => P=1ex)
     # Turning all non-numeric values into 'nan'
-    data_frame = data_frame.applymap(lambda value: func(value))
+    data_frame = data_frame.applymap(lambda value: _func(value))
 
     return data_frame
 
 
-def removing_duplicates(data_frame):
+def _removing_duplicates(data_frame: pd.DataFrame) -> pd.DataFrame:
     # Removing Duplicates
     data_frame.drop_duplicates(inplace=True)
 
     return data_frame
 
 
-def interpolated_data(data_frame):  # Replacing 'nan' values with the desired interpolation
-    clean_data_frame = data_frame.copy()
+def _interpolated_data(data_frame) -> pd.DataFrame:
+    # Replacing 'nan' values with the desired interpolation
+    clean_data_frame: pd.DataFrame = data_frame.copy()
     # Changes all the values of the non-numeric cells to 'nan. The result is pandas DataFrame
     clean_data_frame = clean_data_frame.apply(lambda series: pd.to_numeric(series, errors='coerce'))
     # Applying an aggregation function on the DataFrame. The result is pandas series - size: (number_of_columns,)
-    interpolation_data_series = clean_data_frame.aggregate(func=np.mean, axis=0)  # TODO: Try multiple functions
+    interpolation_data_series: pd.DataFrame = clean_data_frame.aggregate(func=np.mean, axis=0)
     # Filling the 'nan' cells with the resulted pandas series above (Because the series above and the DataFrame are the
     # same size, the appliance will be done by matching each value in the 'interpolation_data_series' on it's
     # corresponding series (column) in the DataFrame
@@ -42,17 +65,17 @@ def interpolated_data(data_frame):  # Replacing 'nan' values with the desired in
     return data_frame
 
 
-def data_filtering(data_frame_list: List[pd.DataFrame]):
+def data_filtering(data_frame_list: List[pd.DataFrame]) -> List[pd.DataFrame]:
     for list_index, data_frame in enumerate(data_frame_list):
-        data_frame = wrong_data_filtering(data_frame)
-        data_frame = removing_duplicates(data_frame)
-        data_frame = interpolated_data(data_frame)
+        data_frame = _wrong_data_filtering(data_frame)
+        data_frame = _removing_duplicates(data_frame)
+        data_frame = _interpolated_data(data_frame)
         data_frame_list[list_index] = data_frame
 
     return data_frame_list
 
 
-def non_integer_type_columns(concatenated_table: pd.DataFrame) -> (List, List):
+def _non_integer_type_columns(concatenated_table: pd.DataFrame) -> (List, List):
     # Picking the non-integer type columns
     numeric_columns_list, non_numeric_columns_list = [], []
     for col in concatenated_table.columns:
@@ -64,14 +87,11 @@ def non_integer_type_columns(concatenated_table: pd.DataFrame) -> (List, List):
         numeric_df = pd.to_numeric(non_nan_df, errors='coerce')
         if np.sum(numeric_df > -np.inf) != len(non_nan_df):
             non_numeric_columns_list.append(col)
-            # continue
-        # elif concatenated_table[col][0] > -np.inf:
-        #     numeric_column_list.append(col)
 
     return numeric_columns_list, non_numeric_columns_list
 
 
-def create_clean_data_frame(data_frame: pd.DataFrame) -> pd.DataFrame:
+def _create_clean_data_frame(data_frame: pd.DataFrame) -> pd.DataFrame:
     # Create clean DataFrame
     drop_clean_set: set = {'-', '_', '/', '\\'}
     clean_data_frame = data_frame.copy()
@@ -92,49 +112,29 @@ def create_clean_data_frame(data_frame: pd.DataFrame) -> pd.DataFrame:
     return clean_data_frame
 
 
-def pandas_to_numeric(data_frame: pd.DataFrame) -> pd.DataFrame:
+def _pandas_to_numeric(data_frame: pd.DataFrame) -> pd.DataFrame:
     for col in data_frame.columns:
         for index, cell in enumerate(data_frame[col]):
             numeric_value = pd.to_numeric(cell, errors='coerce')
             if numeric_value > -np.inf:  # Is numeric
                 data_frame.loc[index, col] = float(numeric_value)
-        # data_frame[col] = pd.to_numeric(data_frame[col], errors='ignore')
 
     return data_frame
 
 
-def dropping_nan_columns(data_frame: pd.DataFrame):
+def _dropping_nan_columns(data_frame: pd.DataFrame) -> None:
     # Dropping NAN Columns
     data_frame.dropna(axis=1, how='all', inplace=True)
     data_frame.reset_index(drop=True, inplace=True)
 
 
-def dropping_nan_rows(data_frame: pd.DataFrame):
+def _dropping_nan_rows(data_frame: pd.DataFrame) -> None:
     # Dropping NAN Rows
     data_frame.dropna(axis=0, how='all', inplace=True)
     data_frame.reset_index(drop=True, inplace=True)
 
 
-"""
-def dropping_nan_columns(data_frame: pd.DataFrame):
-    # Dropping NaN colmns
-    for col in data_frame.keys():
-        if data_frame[col].isna().values.sum() == len(data_frame[col]):  # If a certain column is NaN
-            data_frame.drop(columns=[col], inplace=True) 
-
-
-def dropping_nan_rows(data_frame: pd.DataFrame):
-    # Dropping NaN Rows
-    index_list_to_drop: List = []
-    for index, row in data_frame.iterrows():
-        if row.isna().values.sum() == len(row):  # If a certain row is NaN
-            inedx_list_to_drop.append(index)
-    data_frame.drop(index_list_to_drop, inplace=True)
-    data_frame.reset_index(drop=True, inplace=True)
-"""
-
-
-def changing_column_indexes(data_frame):
+def _changing_column_indexes(data_frame: pd.DataFrame) -> None:
     # Changing columns Indexes to relevant ones
     is_nan = False
     while True:
@@ -153,7 +153,7 @@ def changing_column_indexes(data_frame):
             break
 
 
-def changing_column_indexes_names(data_frame):
+def _changing_column_indexes_names(data_frame: pd.DataFrame) -> None:
     # Replacing '\n' and ' ' with '_' in DataFrame's indexes names
     columns_list: List = []
     for column in data_frame.columns:
@@ -181,17 +181,17 @@ def changing_column_indexes_names(data_frame):
     data_frame.columns = columns_list
 
 
-def data_frame_cleaning(data_frame):
-    dropping_nan_columns(data_frame)
+def _data_frame_cleaning(data_frame: pd.DataFrame) -> None:
+    _dropping_nan_columns(data_frame)
 
-    dropping_nan_rows(data_frame)
+    _dropping_nan_rows(data_frame)
 
-    changing_column_indexes(data_frame)
+    _changing_column_indexes(data_frame)
 
-    changing_column_indexes_names(data_frame)
+    _changing_column_indexes_names(data_frame)
 
 
-def create_data_frames(file: str, pandas_callback_function: callable):
+def create_data_frames(file: str, pandas_callback_function: callable) -> (List[pd.DataFrame], List[str]):
     data_frame_list: List = []
     file_name_list: List = []
 
@@ -201,7 +201,7 @@ def create_data_frames(file: str, pandas_callback_function: callable):
         # TODO: Create a function for this - return func(file, pandas_callback_function)
         data_frame: pd.DataFrame = pandas_callback_function(file)
 
-        data_frame_cleaning(data_frame)
+        _data_frame_cleaning(data_frame)
 
         data_frame_list.append(data_frame)
 
@@ -216,7 +216,7 @@ def create_data_frames(file: str, pandas_callback_function: callable):
         for key in data_dict.keys():  # For each sheet in the Excel file
             data_frame: pd.DataFrame = data_dict[key]  # Create a data frame from each Excel sheet
 
-            data_frame_cleaning(data_frame)
+            _data_frame_cleaning(data_frame)
 
             data_frame_list.append(data_frame)
             file_name: str = key  # .replace(' ', '_')  # Determining SQL table's name - sheet's name

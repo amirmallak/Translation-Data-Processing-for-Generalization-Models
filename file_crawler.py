@@ -1,18 +1,26 @@
 import os
-import pathlib
 import pandas as pd
 import config
 
-from datetime import datetime
-from typing import List, Dict
-from sqlalchemy import create_engine, INTEGER
+from typing import Dict
 from data_processing import create_data_frames, data_filtering
-from database_updating import fetching_sql_file_meta_data_table, update_database, create_sql_view_tables
+from database_updating import update_database, _create_sql_view_tables
 from files_cache import FilesCache
-from utils import translation_dictionary_path, read_json_translation_file, calculate_md5_hash
+from utils import translation_dictionary_path, read_json_translation_file
+
+"""
+This module is the program's core module. It crawls over the files in a differential manner, filters any necessary 
+data frames, creates relevant tables and adds them to the DB.
+
+Functions:
+
+_get_extensions() -- Formats a combined dictionary for file types corresponding to its a callback function
+crawl_file() -- Crawls over all directory hierarchical files, extract relevant information, filter the files, and builds
+                relevant tables and adds them to the DB
+"""
 
 
-def get_extensions():
+def _get_extensions() -> Dict:
     csv_extensions: Dict = dict.fromkeys(['.csv'], pd.read_csv)
     excel_extensions: Dict = dict.fromkeys(['.xlxs', 'xlsm', '.xlsb', '.xltx', 'xltm', 'xls', '.xlt', '.xml',
                                             '.xlam', '.xla', '.xlw', '.xlr'], pd.read_excel)
@@ -24,9 +32,9 @@ def get_extensions():
 def crawl_file(root_directory: str,
                file_mapping_directory: str,
                apply_data_filters: bool,
-               update_db: bool = False, FILES_META_DATA=None) -> None:
+               update_db: bool = False) -> None:
 
-    extension_types = get_extensions()
+    extension_types = _get_extensions()
 
     # Fetching the all file's columns translation dictionary
     translate_index_file_path = translation_dictionary_path(file_mapping_directory)
@@ -52,6 +60,6 @@ def crawl_file(root_directory: str,
 
                     if update_db:
                         update_database(data_frame_list, file_name_list)
-                        create_sql_view_tables(translate_dict)
+                        _create_sql_view_tables(translate_dict)
 
                     files_cache.add_file(file_path)

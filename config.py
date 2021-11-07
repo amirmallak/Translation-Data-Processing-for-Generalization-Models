@@ -1,6 +1,14 @@
 from dotenv import load_dotenv
 from os import getenv
 
+"""
+This module is a configuration module. It saves (maps) all the needed default values for certain parameters, and configs
+required configurations for connecting to the desired DB.
+
+Functions:
+
+load_dotenv() -- A python built in function for handling a .env file with the necessary configurations 
+"""
 
 load_dotenv()
 
