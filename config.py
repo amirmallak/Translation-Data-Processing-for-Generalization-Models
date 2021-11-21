@@ -4,13 +4,9 @@ from os import getenv
 """
 This module is a configuration module. It saves (maps) all the needed default values for certain parameters, and configs
 required configurations for connecting to the desired DB.
-
-Functions:
-
-load_dotenv() -- A python built in function for handling a .env file with the necessary configurations 
 """
 
-load_dotenv()
+load_dotenv()  # A function for handling a .env file with the necessary configurations
 
 path = getenv('Root_Directory', None)
 sql_server = getenv('SQL_Server', None)

@@ -1,7 +1,8 @@
+import json
 import config
-import sys
+import click
 
-from typing import Optional
+from typing import Dict
 from file_crawler import crawl_file
 
 
@@ -22,6 +23,8 @@ file_mapping_directory -- A path which contains a translation mapping json file 
                           in the desired files into the desired word "description" in the json mapping file) 
 apply_data_filters -- A boolean parameter which indicates whether to apply a set of filters on the raw data in the 
                       pre-processing phase after cleaning it
+file_index_translate -- The json mapping file. Indicates which word (key) in the files fields (if it exists there) 
+                        should be mapped (replaced) to which new word (value)
 
 Functions:
 
@@ -33,28 +36,40 @@ crawl_file() -- The core function of the code. Crawls on all the differentiable 
 """
 
 
-def main():
-    """
-    Input: None
-    :return: None
-    """
-    arguments = sys.argv[1:]
-    # Initial assignment
-    root_directory: Optional[str] = None
-    file_mapping_directory: Optional[str] = None
-    apply_data_filters: Optional[bool] = None
-    try:
-        root_directory = arguments[0]
-        file_mapping_directory = arguments[1]
-        apply_data_filters = bool(arguments[2])
-    except IndexError:
-        if not arguments:  # If the user didn't specify any path
-            root_directory = config.path
-            file_mapping_directory = config.path_mapping
-            apply_data_filters = False  # Default Value
+def default_callback_builder(message):
+    def inner():
+        click.echo(message)
 
+        return config.path
+
+    return inner
+
+
+@click.group()
+def cli():
+    pass
+
+
+@cli.command(help="This command crawl all the files in the provided directory")
+@click.option('--root_directory', default=default_callback_builder("Taking root dir from environment variable"))
+@click.option('--file_mapping_directory', default=default_callback_builder("Taking files dir from environment variable"))
+@click.option('--apply_data_filters', default=False)
+def process_files(root_directory, file_mapping_directory, apply_data_filters):
     crawl_file(root_directory, file_mapping_directory, apply_data_filters)
 
 
+@cli.command()
+@click.option('--translation_dict_path', default=f'{config.path_mapping}\\oxford_dictionary_translation.json')
+def create_mapping_dictionary(translation_dict_path):
+    file_index_translate: Dict = {
+        'Date_Different_Language': 'Date',
+        'House_Different_Language': 'House',
+        'Building_Different_Language': 'Building'
+    }
+
+    with open(translation_dict_path, 'w', encoding='utf-8') as json_file:
+        json.dump(file_index_translate, json_file, ensure_ascii=False)
+
+
 if __name__ == '__main__':
-    main()
+    cli()

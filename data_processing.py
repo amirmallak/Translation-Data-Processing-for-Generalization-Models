@@ -195,7 +195,7 @@ def create_data_frames(file: str, pandas_callback_function: callable) -> (List[p
     data_frame_list: List = []
     file_name_list: List = []
 
-    # FIXME: wrap the pandas_callback_function() with decorators in the extensions dictionary
+    # TODO: wrap the pandas_callback_function() with decorators in the extensions dictionary
     if pandas_callback_function is pd.read_csv:  # If it's a csv file
 
         # TODO: Create a function for this - return func(file, pandas_callback_function)

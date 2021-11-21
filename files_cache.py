@@ -8,7 +8,7 @@ from utils import calculate_md5_hash, extract_file_information, FILES_META_DATA_
 """
 This module represents a system cache for all crawled files. It is responsible for maintaining an open engine connection
 with the DB (reduces number of calls), and for the differential crawling and file handling, and also for updating the 
-Meta data files table in the DB
+Meta data files table in the DB.
 
 Functions:
 
